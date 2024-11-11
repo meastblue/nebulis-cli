@@ -1,0 +1,28 @@
+# Rust
+target/
+Cargo.lock
+debug/
+**/*.rs.bk
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Test files
+test_*
+temp_*
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Log files
+*.log
