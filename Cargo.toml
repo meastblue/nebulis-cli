@@ -6,20 +6,30 @@ authors = ["Massinissa Amalou <amalou.massinissa&gmail.com>"]
 description = "A Full Stack Rust/Remix/SurrealDB/GraphQL Project Generator"
 license = "MIT"
 readme = "README.md"
-homepage = "https://github.com/yourusername/nebulis"
-repository = "https://github.com/yourusername/nebulis"
+homepage = "https://github.com/meastblue/nebulis-cli"
+repository = "https://github.com/meastblue/nebulis-cli"
+documentation = "https://github.com/meastblue/nebulis-cli#readme"
 keywords = ["cli", "rust", "remix", "graphql", "surrealdb"]
 categories = ["command-line-utilities", "development-tools"]
+exclude = ["/.github/*", "/tests/*", "/.gitignore"]
+
+[package.metadata]
+msrv = "1.70.0" # Version minimale de Rust supportée
 
 [profile.release]
 opt-level = 3
-strip = true      # Strip symbols from binary
-lto = true        # Enable link-time optimization
-codegen-units = 1 # Maximum size reduction optimizations
+strip = true
+lto = true
+codegen-units = 1
+panic = 'abort'
 
 [[bin]]
 name = "nebulis"
 path = "src/main.rs"
+
+[badges]
+maintenance = { status = "actively-developed" }
+
 
 [dependencies]
 clap = { version = "4.4", features = ["derive"] }

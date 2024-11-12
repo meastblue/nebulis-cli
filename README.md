@@ -1,5 +1,10 @@
 # Nebulis 🚀
 
+[![Crates.io](https://img.shields.io/crates/v/nebulis.svg)](https://crates.io/crates/nebulis)
+[![Downloads](https://img.shields.io/crates/d/nebulis.svg)](https://crates.io/crates/nebulis)
+[![License](https://img.shields.io/crates/l/nebulis.svg)](https://github.com/yourusername/nebulis/blob/master/LICENSE)
+
+
 Nebulis is a CLI tool for bootstrapping full-stack applications with a Rust backend (Axum + GraphQL + SurrealDB) and a Remix frontend (Deno 2).
 
 ## Features
@@ -22,7 +27,18 @@ Nebulis is a CLI tool for bootstrapping full-stack applications with a Rust back
   - Development environment
   - Easy deployment
 
+
 ## Installation
+
+You can install Nebulis using Cargo:
+
+```bash
+cargo install nebulis
+```
+
+Or download pre-built binaries from [GitHub Releases](https://github.com/yourusername/nebulis/releases).
+
+...
 
 ### From Source
 ```bash
