@@ -6,12 +6,19 @@ authors = ["Massinissa Amalou <amalou.massinissa&gmail.com>"]
 description = "A Full Stack Rust/Remix/SurrealDB/GraphQL Project Generator"
 license = "MIT"
 readme = "README.md"
+homepage = "https://github.com/yourusername/nebulis"
 repository = "https://github.com/yourusername/nebulis"
 keywords = ["cli", "rust", "remix", "graphql", "surrealdb"]
 categories = ["command-line-utilities", "development-tools"]
 
-[bin]
-name = "nebulis"     # This will be the command name
+[profile.release]
+opt-level = 3
+strip = true      # Strip symbols from binary
+lto = true        # Enable link-time optimization
+codegen-units = 1 # Maximum size reduction optimizations
+
+[[bin]]
+name = "nebulis"
 path = "src/main.rs"
 
 [dependencies]
