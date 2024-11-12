@@ -26,11 +26,11 @@ Nebulis is a CLI tool for bootstrapping full-stack applications with a Rust back
 
 ### From Source
 ```bash
-cargo install --git https://github.com/yourusername/nebulis.git
+cargo install --git https://github.com/meastblue/nebulis-cli.git
 ```
 
 ### From Releases
-Download the latest binary from the [releases page](https://github.com/yourusername/nebulis/releases).
+Download the latest binary from the [releases page](https://github.com/meastblue/nebulis-cli/releases).
 
 ## Usage
 
@@ -75,7 +75,7 @@ my-project/
 
 ### Building from source
 ```bash
-git clone https://github.com/yourusername/nebulis.git
+git clone https://github.com/meastblue/nebulis-cli.git
 cd nebulis
 cargo build --release
 ```
