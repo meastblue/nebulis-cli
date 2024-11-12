@@ -6,7 +6,7 @@ on:
       - "v[0-9]+.[0-9]+.[0-9]+"
 
 permissions:
-  contents: write # Nécessaire pour créer des releases
+  contents: write
 
 jobs:
   build-release:
@@ -92,22 +92,32 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Verify Cargo.toml version
+      - name: Check version
+        id: check_version
         run: |
-          VERSION=$(grep '^version = ' Cargo.toml | cut -d '"' -f 2)
+          CARGO_VERSION=$(grep '^version =' Cargo.toml | cut -d '"' -f 2)
           TAG_VERSION=${GITHUB_REF#refs/tags/v}
+          echo "cargo_version=$CARGO_VERSION" >> $GITHUB_OUTPUT
+          echo "tag_version=$TAG_VERSION" >> $GITHUB_OUTPUT
 
-          if [ "$VERSION" != "$TAG_VERSION" ]; then
-            echo "Error: Version mismatch!"
-            echo "Cargo.toml version: $VERSION"
-            echo "Git tag version: $TAG_VERSION"
+          if [ "$CARGO_VERSION" != "$TAG_VERSION" ]; then
+            echo "::error::Version mismatch! Cargo.toml ($CARGO_VERSION) != Tag ($TAG_VERSION)"
+            exit 1
+          fi
+
+      - name: Check if version exists
+        run: |
+          VERSION=${{ steps.check_version.outputs.cargo_version }}
+          if curl -s https://crates.io/api/v1/crates/nebulis/$VERSION > /dev/null; then
+            echo "::error::Version $VERSION already exists on crates.io"
             exit 1
           fi
 
       - name: Publish to crates.io
+        if: success()
         run: |
           cargo login ${{ secrets.CRATES_IO_TOKEN }}
-          cargo publish --allow-dirty || echo "Publish failed, continuing..."
+          cargo publish
 
   create-release:
     name: Create GitHub Release
