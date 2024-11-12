@@ -1,9 +1,18 @@
 [package]
-name = "nebulis-cli"
+name = "nebulis"
 version = "0.1.0"
 edition = "2021"
-authors = ["Your Name <your.email@example.com>"]
-description = "A CLI for creating Nebulis projects"
+authors = ["Massinissa Amalou <amalou.massinissa&gmail.com>"]
+description = "A Full Stack Rust/Remix/SurrealDB/GraphQL Project Generator"
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/yourusername/nebulis"
+keywords = ["cli", "rust", "remix", "graphql", "surrealdb"]
+categories = ["command-line-utilities", "development-tools"]
+
+[bin]
+name = "nebulis"     # This will be the command name
+path = "src/main.rs"
 
 [dependencies]
 clap = { version = "4.4", features = ["derive"] }
