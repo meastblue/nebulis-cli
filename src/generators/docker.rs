@@ -2,22 +2,30 @@
 use std::fs;
 
 pub fn create_structure(project_name: &str) {
-    create_docker_compose(project_name);
-}
+    let content = format!(
+        r#"version: '3.8'
 
-fn create_docker_compose(project_name: &str) {
-    let content = r#"version: '3.8'
 services:
   surrealdb:
     image: surrealdb/surrealdb:latest
-    container_name: {{project_name}}_surrealdb
+    container_name: {}_db
     ports:
       - "8000:8000"
     volumes:
       - ./database:/data
     command: start --user root --pass root file:/data/database.db
-"#
-    .replace("{{project_name}}", project_name);
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-    fs::write(format!("{}/docker-compose.yml", project_name), content).unwrap();
+networks:
+  default:
+    name: {}_network"#,
+        project_name, project_name
+    );
+
+    fs::write(format!("{}/docker-compose.yml", project_name), content)
+        .unwrap_or_else(|_| panic!("Failed to create docker-compose.yml"));
 }

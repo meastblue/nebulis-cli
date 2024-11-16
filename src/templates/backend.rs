@@ -5,25 +5,23 @@ pub fn get_cargo_toml_template(project_name: &str) -> String {
 name = "{}_backend"
 version = "0.1.0"
 edition = "2021"
-authors = ["Your Name <your.email@example.com>"]
-description = "A CLI for creating Nebulis projects"
 
 [dependencies]
 tokio = {{ version = "1.0", features = ["full"] }}
 axum = {{ version = "0.7", features = ["macros"] }}
 async-graphql = {{ version = "7.0", features = ["chrono"] }}
 async-graphql-axum = "7.0"
-surrealdb = {{ version = "2.0.4" }}
+surrealdb = {{ version = "1.0.0" }}
 serde = {{ version = "1.0", features = ["derive"] }}
 serde_json = "1.0"
-tower = "0.5.1"
-tower-http = {{ version = "0.6.1", features = ["cors"] }}
+tower = "0.4"
+tower-http = {{ version = "0.5", features = ["cors"] }}
 dotenvy = "0.15"
 tracing = "0.1"
 tracing-subscriber = {{ version = "0.3", features = ["env-filter"] }}
-thiserror = "2.0.3"
+thiserror = "1.0"
 chrono = {{ version = "0.4", features = ["serde"] }}
-validator = {{ version = "0.19.0", features = ["derive"] }}"#,
+validator = {{ version = "0.16", features = ["derive"] }}"#,
         project_name
     )
 }
@@ -61,7 +59,7 @@ async fn main() {
     // Build our application with routes
     let app = Router::new()
         .route("/", get(|| async { "Nebulis Backend API" }))
-        .route("/graphql", 
+        .route("/graphql",
             get(GraphQLHandler::new(schema.clone()))
             .post(GraphQLHandler::new(schema))
         );

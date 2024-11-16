@@ -3,6 +3,7 @@ mod cli;
 mod commands;
 mod generators;
 mod templates;
+mod tests;
 mod utils;
 
 use clap::Parser;

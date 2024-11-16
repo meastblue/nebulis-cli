@@ -1,6 +1,7 @@
 use crate::generators::{backend, docker, frontend};
 use crate::utils::print;
 use colored::*;
+use std::process::Command;
 
 pub fn execute(name: &str) {
     print::header("Creating Nebulis Full Stack Project");
@@ -13,9 +14,7 @@ pub fn execute(name: &str) {
     });
 
     // Initialize Git at root level only
-    if let Err(e) = init_git(name) {
-        println!("{} {}", "Warning: Failed to initialize git:".yellow(), e);
-    }
+    init_git(name);
 
     // Generate backend
     println!("\n{}", "Generating Rust backend...".blue());
@@ -36,71 +35,54 @@ pub fn execute(name: &str) {
     print::next_steps(name);
 }
 
-fn init_git(path: &str) -> Result<(), String> {
-    use std::process::Command;
-
-    Command::new("git")
+fn init_git(path: &str) {
+    match Command::new("git")
         .args(["init"])
         .current_dir(path)
         .status()
-        .map_err(|e| e.to_string())?;
+    {
+        Ok(_) => {
+            println!("{}", "Git repository initialized".green());
+            create_gitignore(path);
+        }
+        Err(_) => {
+            println!(
+                "{}",
+                "Warning: Failed to initialize git repository".yellow()
+            );
+        }
+    }
+}
 
-    // Create .gitignore
-    std::fs::write(
-        format!("{}/.gitignore", path),
-        r#"# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
-.DS_Store
+fn create_gitignore(path: &str) {
+    let gitignore_content = r#"# Dependencies
+node_modules/
+/target/
 
-# Rust Backend
-backend/target/
-backend/Cargo.lock
-backend/debug/
-backend/**/*.rs.bk
-backend/.env
-backend/logs/
-
-# Logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-
-# Frontend - Remix with Deno
-frontend/node_modules/
-frontend/build/
-frontend/.cache/
-frontend/functions/\[\[path\]\].js
-frontend/functions/\[\[path\]\].js.map
-frontend/functions/metafile.*
-frontend/public/build
-frontend/.env*
-!frontend/.env.example
-
-# Database
-database/
-data/
-
-# Temporary files
-*.tmp
-*.temp
-.DS_Store
-Thumbs.db
+# Build
+dist/
+build/
 
 # Environment variables
 .env
 .env.*
 !.env.example
 
-# Docker
-docker-compose.override.yml
-"#,
-    )
-    .map_err(|e| e.to_string())?;
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
 
-    Ok(())
+# OS
+.DS_Store
+Thumbs.db
+
+# Database
+database/
+"#;
+
+    if let Err(e) = std::fs::write(format!("{}/.gitignore", path), gitignore_content) {
+        println!("{} {}", "Warning: Failed to create .gitignore:".yellow(), e);
+    }
 }

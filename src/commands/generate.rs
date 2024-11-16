@@ -1,20 +1,14 @@
 // src/commands/generate.rs
-use crate::generators;
-use colored::*;
+use crate::generators::{migration, model, resolver};
 
-pub fn execute(component_type: &str, name: &str) {
-    println!(
-        "\n{}",
-        format!("Generating {}: {}", component_type, name).blue()
-    );
+pub fn execute_model(name: &str, fields: &[String]) -> Result<(), String> {
+    model::execute(name, fields)
+}
 
-    match component_type {
-        "model" => generators::backend::generate_model(name),
-        "migration" => generators::backend::generate_migration(name),
-        "resolver" => generators::backend::generate_resolver(name),
-        _ => println!(
-            "{}",
-            format!("Unknown component type: {}", component_type).red()
-        ),
-    }
+pub fn execute_migration(name: &str) -> Result<(), String> {
+    migration::execute(name)
+}
+
+pub fn execute_resolver(name: &str) -> Result<(), String> {
+    resolver::execute(name)
 }
