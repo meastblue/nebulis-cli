@@ -1,4 +1,4 @@
-// src/generators/model.rs
+// src/generators/entity
 use colored::*;
 use convert_case::{Case, Casing};
 use std::fs;
@@ -76,18 +76,18 @@ const VALID_TYPES: [&str; 25] = [
 ];
 
 /// Template pour la génération des modèles
-const MODEL_TEMPLATE: &str = r#"use serde::{Deserialize, Serialize};
+const ENTITY_TEMPLATE: &str = r#"use serde::{Deserialize, Serialize};
 use async_graphql::{{SimpleObject, InputObject, Enum}};
 use validator::Validate;
 use chrono::{DateTime, Utc};
-use crate::entities::base_model::BaseModel;
+use crate::entities::base_entity::BaseEntity;
 {imports}
 
 #[derive(Debug, Clone, Serialize, Deserialize, SimpleObject, Validate)]
 #[serde(rename_all = "camelCase")]
 pub struct {name} {
     #[serde(flatten)]
-    base: BaseModel,
+    base: BaseEntity,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     deleted_at: Option<DateTime<Utc>>,
@@ -102,7 +102,7 @@ pub struct {name} {
 impl {name} {
     pub fn new() -> Self {
         Self {
-            base: BaseModel::new(),
+            base: BaseEntity::new(),
             deleted_at: None,
 {field_inits}
 {relation_inits}
@@ -166,11 +166,11 @@ pub enum SortOrder {
     Desc,
 }"#;
 
-// src/generators/model.rs (suite)
+// src/generators/entity (suite)
 
 /// Point d'entrée principal pour la génération d'un modèle
 pub fn execute(name: &str, fields: &[String]) -> Result<(), String> {
-    println!("{} {}", "Generating model:".blue(), name);
+    println!("{} {}", "Generating entity:".blue(), name);
 
     if !Path::new("backend").exists() {
         return Err("Not in a Nebulis project directory".into());
@@ -178,16 +178,16 @@ pub fn execute(name: &str, fields: &[String]) -> Result<(), String> {
 
     let (fields, relations) = parse_fields_and_relations(fields)?;
 
-    let model_path = format!("backend/src/entities/{}.rs", name.to_lowercase());
-    let model_content = generate_model_content(name, &fields, &relations)?;
-    fs::write(&model_path, model_content)
-        .map_err(|e| format!("Failed to write model file: {}", e))?;
+    let entity_path = format!("backend/src/entities/{}.rs", name.to_lowercase());
+    let entity_content = generate_entity_content(name, &fields, &relations)?;
+    fs::write(&entity_path, entity_content)
+        .map_err(|e| format!("Failed to write entity file: {}", e))?;
 
     update_entities_mod(name, &relations)?;
     update_graphql_mod(name)?;
 
     println!("{} Generated files:", "✓".green());
-    println!("  - {}", model_path);
+    println!("  - {}", entity_path);
     Ok(())
 }
 
@@ -363,10 +363,10 @@ fn validate_field_type(field_type: &str) -> Result<(), String> {
     Ok(())
 }
 
-// src/generators/model.rs (suite et fin)
+// src/generators/entity (suite et fin)
 
 /// Génère le contenu du fichier modèle
-fn generate_model_content(
+fn generate_entity_content(
     name: &str,
     fields: &[(String, String, FieldValidation)],
     relations: &[RelationType],
@@ -424,7 +424,7 @@ fn generate_model_content(
         .collect::<Vec<_>>()
         .join(",\n");
 
-    let content = MODEL_TEMPLATE
+    let content = ENTITY_TEMPLATE
         .replace("{imports}", &imports)
         .replace("{name}", &struct_name)
         .replace("{fields}", &fields_def)

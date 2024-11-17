@@ -3,9 +3,9 @@ use colored::*;
 
 #[derive(Subcommand)]
 pub enum GenerateType {
-    #[command(about = "Generate a new model")]
-    Model {
-        #[arg(help = "Name of the model")]
+    #[command(about = "Generate a new entity")]
+    Entity {
+        #[arg(help = "Name of the entity")]
         name: String,
         #[arg(
             long, 
@@ -82,8 +82,8 @@ impl Cli {
             }
             Commands::Generate { type_ } => {
                 let result = match type_ {
-                    GenerateType::Model { name, fields } => {
-                        crate::generators::model::execute(name, fields)
+                    GenerateType::Entity { name, fields } => {
+                        crate::generators::entity::execute(name, fields)
                     }
                     GenerateType::Migration { name } => crate::generators::migration::execute(name),
                     GenerateType::Resolver { name } => crate::generators::resolver::execute(name),

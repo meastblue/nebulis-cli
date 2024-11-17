@@ -57,7 +57,7 @@ nebulis new my-project
 
 ### Generate components
 ```bash
-nebulis generate model User
+nebulis generate entity User
 nebulis generate migration CreateUsers
 nebulis generate resolver UserResolver
 ```

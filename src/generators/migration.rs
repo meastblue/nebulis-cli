@@ -7,7 +7,7 @@ use std::path::Path;
 
 /// Structure pour stocker les informations du modèle
 #[derive(Debug)]
-struct ModelInfo {
+struct EntityInfo {
     fields: Vec<(String, String, FieldValidation)>,
     relations: Vec<RelationType>,
 }
@@ -58,10 +58,10 @@ enum MigrationOperation {
     AddRelation(String, String, String),  // from_table, to_table, type
 }
 
-impl ModelInfo {
-    fn parse_from_file(model_path: &str) -> Result<Self, String> {
-        let content = fs::read_to_string(model_path)
-            .map_err(|e| format!("Could not read model file: {}", e))?;
+impl EntityInfo {
+    fn parse_from_file(entity_path: &str) -> Result<Self, String> {
+        let content = fs::read_to_string(entity_path)
+            .map_err(|e| format!("Could not read entity file: {}", e))?;
 
         let mut fields = Vec::new();
         let mut relations = Vec::new();
@@ -96,7 +96,7 @@ impl ModelInfo {
             fields.push((field_name.to_string(), field_type.to_string(), validation));
         }
 
-        Ok(ModelInfo { fields, relations })
+        Ok(EntityInfo { fields, relations })
     }
 }
 
@@ -146,15 +146,15 @@ impl MigrationOperation {
     fn up_sql(&self) -> String {
         match self {
             Self::CreateTable(name) => {
-                let model_path = format!(
+                let entity_path = format!(
                     "backend/src/entities/{}.rs",
                     name.trim_end_matches('s').to_lowercase()
                 );
 
-                let model_info = ModelInfo::parse_from_file(&model_path)
-                    .unwrap_or_else(|_| ModelInfo {
+                let entity_info =
+                    EntityInfo::parse_from_file(&entity_path).unwrap_or_else(|_| EntityInfo {
                         fields: Vec::new(),
-                        relations: Vec::new()
+                        relations: Vec::new(),
                     });
 
                 let table_name = name.to_lowercase();
@@ -172,9 +172,9 @@ impl MigrationOperation {
                 seen_fields.insert("id".to_string());
                 sections.push("".to_string());
 
-                // Model fields section
-                sections.push("// Champs du modèle".to_string());
-                for (field_name, field_type, _) in &model_info.fields {
+                // Entity fields section
+                sections.push("// Champs de l'entité".to_string());
+                for (field_name, field_type, _) in &entity_info.fields {
                     if !seen_fields.insert(field_name.clone()) {
                         continue; // Skip if field already defined
                     }
@@ -187,7 +187,7 @@ impl MigrationOperation {
                         "f32" | "f64" => "float",
                         "bool" => "bool",
                         "DateTime" => "datetime",
-                        _ => "string"
+                        _ => "string",
                     };
 
                     sections.push(format!(
@@ -202,18 +202,11 @@ impl MigrationOperation {
                     if !seen_fields.insert(field.to_string()) {
                         continue;
                     }
+                    sections.push(format!(
+                        "DEFINE FIELD {field} ON {table_name} TYPE datetime \
+                         VALUE $before OR time::now();"
+                    ));
                 }
-                sections.push(format!(
-                    "DEFINE FIELD created_at ON {table_name} TYPE datetime \
-                     VALUE $before OR time::now();"
-                ));
-                sections.push(format!(
-                    "DEFINE FIELD updated_at ON {table_name} TYPE datetime \
-                     VALUE time::now();"
-                ));
-                sections.push(format!(
-                    "DEFINE FIELD deleted_at ON {table_name} TYPE option<datetime>;"
-                ));
                 sections.push("".to_string());
 
                 // Indexes section
@@ -227,19 +220,7 @@ impl MigrationOperation {
                     ));
                 }
 
-                // Model field indexes
-                for (field_name, field_type, validation) in &model_info.fields {
-                    if field_type == "Email" || field_type == "Phone" || validation.unique {
-                        let index_name = format!("idx_{table_name}_{field_name}");
-                        if seen_indexes.insert(index_name.clone()) {
-                            sections.push(format!(
-                                "DEFINE INDEX {index_name} ON {table_name} FIELDS {field_name};"
-                            ));
-                        }
-                    }
-                }
-
-                // System field indexes
+                // Timestamps indexes
                 for field in ["created", "updated", "deleted"] {
                     let index_name = format!("idx_{table_name}_{field}");
                     if seen_indexes.insert(index_name.clone()) {
@@ -250,7 +231,7 @@ impl MigrationOperation {
                 }
 
                 sections.join("\n")
-            },
+            }
             Self::AddColumn(table, column, type_) => format!(
                 "DEFINE FIELD {} ON {} TYPE {};",
                 column.to_lowercase(),
@@ -331,22 +312,21 @@ pub fn execute(name: &str) -> Result<(), String> {
     let operation = MigrationOperation::from_name(name)
         .ok_or_else(|| format!("Invalid migration name format: {}", name))?;
 
-    let timestamp = Utc::now().format("%Y%m%d%H%M%S");
-    let filename = format!("{}_{}", timestamp, name.to_case(Case::Snake));
+    let filename = format!("{}", name.to_case(Case::Snake));
 
     generate_migration_files(&filename, &operation)?;
     update_migrations_mod(&filename)?;
 
     println!("{} Migration files generated:", "✓".green());
-    println!("  - backend/db/schema/{}.up.surql", filename);
-    println!("  - backend/db/schema/{}.down.surql", filename);
-    println!("  - backend/src/db/migrations/versions/{}.rs", filename);
+    println!("  - database/schema/{}.up.surql", filename);
+    println!("  - database/schema/{}.down.surql", filename);
+    println!("  - backend/src/migrations/{}.rs", filename);
 
     Ok(())
 }
 
 pub fn execute_pending_migrations() -> Result<(), String> {
-    let migrations_dir = "backend/src/db/migrations/versions";
+    let migrations_dir = "backend/src/migrations";
     if !Path::new(migrations_dir).exists() {
         return Err("No migrations directory found".into());
     }
@@ -356,7 +336,7 @@ pub fn execute_pending_migrations() -> Result<(), String> {
 }
 
 pub fn list_migrations() -> Result<(), String> {
-    let migrations_dir = "backend/src/db/migrations/versions";
+    let migrations_dir = "backend/src/migrations";
     if !Path::new(migrations_dir).exists() {
         return Err("No migrations directory found".into());
     }
@@ -384,7 +364,7 @@ pub fn list_migrations() -> Result<(), String> {
 }
 
 pub fn rollback_migrations(_steps: u32) -> Result<(), String> {
-    let migrations_dir = "backend/src/db/migrations/versions";
+    let migrations_dir = "backend/src/migrations";
     if !Path::new(migrations_dir).exists() {
         return Err("No migrations directory found".into());
     }
@@ -395,20 +375,20 @@ pub fn rollback_migrations(_steps: u32) -> Result<(), String> {
 
 fn generate_migration_files(filename: &str, operation: &MigrationOperation) -> Result<(), String> {
     // Créer les répertoires nécessaires
-    fs::create_dir_all("backend/db/schema")
+    fs::create_dir_all("database/schema")
         .map_err(|e| format!("Failed to create schema directory: {}", e))?;
-    fs::create_dir_all("backend/src/db/migrations/versions")
+    fs::create_dir_all("backend/src/migrations")
         .map_err(|e| format!("Failed to create migrations directory: {}", e))?;
 
     // Générer les fichiers SQL
     fs::write(
-        format!("backend/db/schema/{}.up.surql", filename),
+        format!("database/schema/{}.up.surql", filename),
         operation.up_sql(),
     )
     .map_err(|e| format!("Failed to write up migration: {}", e))?;
 
     fs::write(
-        format!("backend/db/schema/{}.down.surql", filename),
+        format!("database/schema/{}.down.surql", filename),
         operation.down_sql(),
     )
     .map_err(|e| format!("Failed to write down migration: {}", e))?;
@@ -416,7 +396,7 @@ fn generate_migration_files(filename: &str, operation: &MigrationOperation) -> R
     // Générer le fichier de migration Rust
     let migration_content = generate_migration_rust(filename)?;
     fs::write(
-        format!("backend/src/db/migrations/versions/{}.rs", filename),
+        format!("backend/src/migrations/{}.rs", filename),
         migration_content,
     )
     .map_err(|e| format!("Failed to write migration file: {}", e))?;
@@ -446,13 +426,13 @@ impl Migration for {class_name} {{
     }}
 
     async fn up(&self, db: &Surreal<Client>) -> Result<(), Box<dyn std::error::Error>> {{
-        let schema = fs::read_to_string("backend/db/schema/{filename}.up.surql")?;
+        let schema = fs::read_to_string("database/schema/{filename}.up.surql")?;
         db.query(schema).await?;
         Ok(())
     }}
 
     async fn down(&self, db: &Surreal<Client>) -> Result<(), Box<dyn std::error::Error>> {{
-        let schema = fs::read_to_string("backend/db/schema/{filename}.down.surql")?;
+        let schema = fs::read_to_string("database/schema/{filename}.down.surql")?;
         db.query(schema).await?;
         Ok(())
     }}
@@ -466,7 +446,7 @@ impl Migration for {class_name} {{
 }
 
 fn update_migrations_mod(filename: &str) -> Result<(), String> {
-    let mod_path = "backend/src/db/migrations/versions/mod.rs";
+    let mod_path = "backend/src/migrations/mod.rs";
     let mut content = fs::read_to_string(mod_path).unwrap_or_else(|_| String::new());
 
     if !content.contains(&format!("pub mod {};", filename)) {

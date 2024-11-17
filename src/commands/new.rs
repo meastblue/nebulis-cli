@@ -1,6 +1,7 @@
 use crate::generators::{backend, docker, frontend};
 use crate::utils::print;
 use colored::*;
+use std::fs;
 use std::process::Command;
 
 pub fn execute(name: &str) {
@@ -15,6 +16,9 @@ pub fn execute(name: &str) {
 
     // Initialize Git at root level only
     init_git(name);
+
+    // Initialize Env file at root level only
+    init_env(name);
 
     // Generate backend
     println!("\n{}", "Generating Rust backend...".blue());
@@ -85,4 +89,27 @@ database/
     if let Err(e) = std::fs::write(format!("{}/.gitignore", path), gitignore_content) {
         println!("{} {}", "Warning: Failed to create .gitignore:".yellow(), e);
     }
+}
+
+pub fn init_env(path: &str) {
+    let content = format!(
+        r#"#Database environement
+DB_HOST=127.0.0.1
+DB_PORT=8000
+DB_USER=root
+DB_PASSWORD=root
+DB_NAME={name}
+
+#Backend environement
+SERVER_HOST=127.0.0.1
+SERVER_PORT=8080
+
+#Frontend environement
+APP_HOST=127.0.0.1
+APP_PORT=3000"#,
+        name = path
+    );
+
+    fs::write(format!("{}/.env", path), content)
+        .unwrap_or_else(|_| panic!("Failed to create .evn file"));
 }

@@ -65,12 +65,7 @@ mod repositories;
 mod services;
 mod utils;
 
-use async_graphql::{EmptySubscription, Schema};
-use async_graphql_axum::GraphQLHandler;
-use axum::{
-    routing::get,
-    Router,
-};
+use dotenv::dotenv;
 
 #[tokio::main]
 async fn main() {
@@ -78,33 +73,57 @@ async fn main() {
     tracing_subscriber::fmt::init();
 
     // Load environment variables
-    dotenvy::dotenv().ok();
+    dotenv().ok();
 
-    // Build our GraphQL schema
-    let schema = Schema::new(
-        graphql::QueryRoot::default(),
-        graphql::MutationRoot::default(),
-        EmptySubscription,
-    );
+    // Run server
+    server::run()
+    .await?;
+}"#;
 
-    // Build our application with routes
-    let app = Router::new()
-        .route("/", get(|| async { "Nebulis Backend API" }))
-        .route("/graphql",
-            get(GraphQLHandler::new(schema.clone()))
-            .post(GraphQLHandler::new(schema))
+    let server_rs = r#"
+use async_graphql::{EmptySubscription, Schema};
+use async_graphql_axum::GraphQLHandler;
+use axum::{
+    routing::get,
+    Router,
+};
+
+struct Server;
+
+impl Server {
+    async fn run() {
+        //Environment variables
+        let host = env::var("SERVER_HOST")?;
+        let port = env::var("SERVER_PORT")?.parse::<u16>()?;
+
+        // Build our GraphQL schema
+        let schema = Schema::new(
+            graphql::QueryRoot::default(),
+            graphql::MutationRoot::default(),
+            EmptySubscription,
         );
 
-    // Run our application
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000")
-        .await
-        .unwrap();
-    println!("Server running on http://localhost:3000");
-    axum::serve(listener, app).await.unwrap();
+        // Build our application with routes
+        let app = Router::new()
+            .route("/", get(|| async { "Nebulis Backend API" }))
+            .route("/graphql",
+                get(GraphQLHandler::new(schema.clone()))
+                .post(GraphQLHandler::new(schema))
+            );
+
+        // Run our application
+        let listener = tokio::net::TcpListener::bind("0.0.0.0:3000")
+            .await
+            .unwrap();
+        println!("Server running on http://localhost:3000");
+        axum::serve(listener, app).await?;
+    }
 }"#;
 
     fs::write(format!("{}/src/main.rs", path), main_rs)
         .unwrap_or_else(|_| panic!("Failed to create main.rs"));
+    fs::write(format!("{}/src/server.rs", path), server_rs)
+        .unwrap_or_else(|_| panic!("Failed to create server.rs"));
 
     create_mod_files(path);
 }
